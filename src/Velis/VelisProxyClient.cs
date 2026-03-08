@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace velis;
+namespace Velis;
 
 /// <summary>
 ///     Simple proxy for the Ariston/Velis REST endpoints.  A <see cref="HttpClient" />

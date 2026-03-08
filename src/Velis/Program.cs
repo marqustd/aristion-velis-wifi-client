@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using velis;
+using Velis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +48,8 @@ builder.Services.AddHttpClient(clientName, client =>
 });
 builder.Services.AddSingleton<VelisProxyClient>();
 builder.Services.AddScoped<CalendarReader>();
+builder.Services.AddSingleton<CalendarWorker>();
+builder.Services.AddHostedService<CalendarWorker>();
 
 var app = builder.Build();
 
@@ -69,7 +71,7 @@ app.MapGet("/api/fetch-sensors",
 
 app.MapGet("/api/calendar",
 		([FromServices] CalendarReader calendarReader, CancellationToken ct) =>
-			calendarReader.GetEventsAsync(ct))
+			calendarReader.GetEventsForDevice(ct))
 	.WithName("Calendar");
 
 app.MapPost("/api/temperature",

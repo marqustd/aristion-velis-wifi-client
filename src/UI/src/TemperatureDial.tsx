@@ -101,7 +101,7 @@ export default function TemperatureDial({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
-        className="touch-none cursor-pointer relative z-10"
+        className="touch-none  relative z-10"
       >
         {/* background arc */}
         <circle

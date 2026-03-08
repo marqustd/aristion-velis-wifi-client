@@ -1,6 +1,6 @@
 ﻿using Ical.Net;
 
-namespace velis;
+namespace Velis;
 
 public sealed class CalendarReader
 {
@@ -22,7 +22,8 @@ public sealed class CalendarReader
 		deviceAliases = deviceAliasesString.Split(';').Select(a => a.Trim()).ToArray();
 	}
 
-	public async Task<IReadOnlyCollection<string>> GetEventsAsync(CancellationToken cancellationToken = default)
+	public async Task<IReadOnlyCollection<CalendarEvent>> GetEventsForDevice(
+		CancellationToken cancellationToken = default)
 	{
 		var response = await httpClient.GetAsync(calendarUrl, cancellationToken);
 		response.EnsureSuccessStatusCode();
@@ -32,12 +33,11 @@ public sealed class CalendarReader
 		var calendar = Calendar.Load(content);
 
 		var events = calendar!.Events
-			.Where(e => e.Start != null && e.Start.AsUtc > DateTime.UtcNow)
-			.Where(e => e.End != null && e.End.AsUtc > DateTime.UtcNow)
+			.Where(e => e.Start != null && e.Start.AsUtc.Date >= DateTime.UtcNow.Date)
+			.Where(e => e.End != null && e.End.AsUtc.Date >= DateTime.UtcNow.Date)
 			.Where(e => !string.IsNullOrWhiteSpace(e.Summary) &&
 			            deviceAliases.Any(deviceAlias => e.Summary.StartsWith($"#{deviceAlias}")));
 
-		var x = 1;
-		return events.Select(e => e.Summary!).ToList();
+		return events.Select(e => new CalendarEvent(e.Summary!, e.Start!.AsUtc, e.End!.AsUtc)).ToArray();
 	}
 }
