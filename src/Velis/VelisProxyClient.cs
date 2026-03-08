@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -14,35 +15,23 @@ namespace Velis;
 /// </summary>
 public class VelisProxyClient(
 	IHttpClientFactory httpClientFactory,
-	IConfiguration configuration,
+	IOptions<AristionOptions> options,
 	ILogger<VelisProxyClient> logger)
 {
 	private const string LoginEndpoint = "/R2/Account/Login?returnUrl=%2FR2%2FHome";
 
-	private readonly string boilerStr =
-		configuration["Ariston:DeviceType"] ?? throw new ArgumentException("Ariston:Username");
+	private readonly AristionOptions aristionOptions = options.Value;
 
-	private readonly HttpClient client = httpClientFactory.CreateClient(
-		configuration["Ariston:Client"]!);
-
-	private readonly string gateway =
-		configuration["Ariston:GatewayId"] ?? throw new ArgumentException("Ariston:GatewayId");
-
-	private readonly string password =
-		configuration["Ariston:Password"] ?? throw new ArgumentException("Ariston:Password");
-
-	private readonly string username =
-		configuration["Ariston:Username"] ?? throw new ArgumentException("Ariston:Username");
-
+	private readonly HttpClient client = httpClientFactory.CreateClient(AristionOptions.ClientName);
 
 	private bool loggedIn;
 	private string plantId = string.Empty;
 
 	private string GetSensorsUrl
-		=> $"/api/v2/velis/{boilerStr}PlantData/{plantId}?appId=com.remotethermo.velis";
+		=> $"/api/v2/velis/{aristionOptions.DeviceType}PlantData/{plantId}?appId=com.remotethermo.velis";
 
 	private string SetTemperatureUrl =>
-		$"/api/v2/velis/{boilerStr}PlantData/{plantId}/temperature?appId=com.remotethermo.velis";
+		$"/api/v2/velis/{aristionOptions.DeviceType}PlantData/{plantId}/temperature?appId=com.remotethermo.velis";
 
 
 	public async Task InitializeLoginAsync(CancellationToken cancellationToken = default)
@@ -52,13 +41,17 @@ public class VelisProxyClient(
 			return;
 		}
 
-		var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+		var auth = Convert.ToBase64String(
+			Encoding.UTF8.GetBytes($"{aristionOptions.Username}:{aristionOptions.Password}"));
 
 		var request = new HttpRequestMessage(HttpMethod.Post, LoginEndpoint)
 		{
 			Content = JsonContent.Create(new
 			{
-				email = username, password, rememberMe = false, language = "English_Us"
+				email = aristionOptions.Username,
+				password = aristionOptions.Password,
+				rememberMe = false,
+				language = "English_Us"
 			})
 		};
 
@@ -84,9 +77,9 @@ public class VelisProxyClient(
 			plantId = GetPlantId(redirectUrl);
 		}
 
-		if (!string.IsNullOrEmpty(gateway))
+		if (!string.IsNullOrEmpty(plantId))
 		{
-			plantId = gateway;
+			plantId = aristionOptions.GatewayId;
 		}
 
 		loggedIn = true;

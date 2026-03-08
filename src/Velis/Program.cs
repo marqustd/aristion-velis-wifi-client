@@ -33,19 +33,26 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 	options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 });
 
-var clientName = builder.Configuration["Ariston:Client"];
-ArgumentException.ThrowIfNullOrWhiteSpace(clientName);
 
-builder.Services.AddHttpClient(clientName, client =>
+builder.Services.Configure<AristionOptions>(
+	builder.Configuration.GetSection(
+		"Ariston"));
+
+builder.Services.Configure<CalendarOptions>(
+	builder.Configuration.GetSection(
+		"Calendar"));
+
+
+builder.Services.AddHttpClient(AristionOptions.ClientName, (provider, client) =>
 {
-	var baseAddress = builder.Configuration["Ariston:BaseUrl"];
-	ArgumentException.ThrowIfNullOrWhiteSpace(baseAddress);
-	client.BaseAddress = new Uri(baseAddress);
+	var options = provider.GetRequiredService<AristionOptions>();
+	client.BaseAddress = new Uri(options.BaseUrl);
 	client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
 	CookieContainer = new CookieContainer(), AllowAutoRedirect = false // we want the location header
 });
+
 builder.Services.AddSingleton<VelisProxyClient>();
 builder.Services.AddScoped<CalendarReader>();
 builder.Services.AddSingleton<CalendarWorker>();

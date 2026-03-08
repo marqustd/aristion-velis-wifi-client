@@ -1,31 +1,31 @@
 ﻿using Ical.Net;
+using Microsoft.Extensions.Options;
 
 namespace Velis;
 
 public sealed class CalendarReader
 {
-	private readonly string calendarUrl;
 	private readonly string[] deviceAliases;
 
 
 	private readonly HttpClient httpClient;
 	private readonly ILogger<CalendarReader> logger;
+	private readonly CalendarOptions options;
 
 	public CalendarReader(IHttpClientFactory httpClientFactory,
-		IConfiguration configuration,
+		IOptions<CalendarOptions> calendarOptions,
 		ILogger<CalendarReader> logger)
 	{
+		options = calendarOptions.Value;
 		this.logger = logger;
-		calendarUrl = configuration["Calendar:Url"] ?? throw new ArgumentException("CalendarUrl");
-		var deviceAliasesString = configuration["Calendar:Aliases"] ?? throw new ArgumentException("CalendarUrl");
 		httpClient = httpClientFactory.CreateClient();
-		deviceAliases = deviceAliasesString.Split(';').Select(a => a.Trim()).ToArray();
+		deviceAliases = options.Aliases.Split(';').Select(a => a.Trim()).ToArray();
 	}
 
 	public async Task<IReadOnlyCollection<CalendarEvent>> GetEventsForDevice(
 		CancellationToken cancellationToken = default)
 	{
-		var response = await httpClient.GetAsync(calendarUrl, cancellationToken);
+		var response = await httpClient.GetAsync(options.Url, cancellationToken);
 		response.EnsureSuccessStatusCode();
 		var content = await response.Content.ReadAsStringAsync(cancellationToken);
 		logger.LogInformation("Calendar content: {Content}", content);
